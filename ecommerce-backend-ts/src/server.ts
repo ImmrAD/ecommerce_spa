@@ -4,6 +4,7 @@ import cors from 'cors';
 import connectDB from './config/db';
 import authRoutes from './routes/authRoutes';
 import itemRoutes from './routes/itemRoutes';
+import cartRoutes from './routes/cartRoutes'; // 1. Import the new cart routes
 
 // Load environment variables
 dotenv.config();
@@ -20,8 +21,7 @@ app.use(express.json()); // To accept JSON data in the body
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
-// Note: Cart APIs are not included as the original request was to persist cart on the frontend.
-// If you needed backend cart persistence, you would add protected cart routes here.
+app.use('/api/cart', cartRoutes); // 2. Tell the app to use the cart routes
 
 const PORT = process.env.PORT || 5000;
 

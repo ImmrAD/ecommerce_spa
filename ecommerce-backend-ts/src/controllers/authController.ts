@@ -10,21 +10,30 @@ const generateToken = (id: string) => {
 };
 
 export const signupUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  // 1. Get the new fields from the request body
+  const { firstName, lastName, email, password, confirmPassword } = req.body;
 
   try {
+    // 2. Add validation to check if passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const user = await User.create({ email, password });
+    // 3. Create the new user with all fields
+    const user = await User.create({ firstName, lastName, email, password });
 
     if (user) {
       res.status(201).json({
         _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
-        token: generateToken(user._id.toString()), // FIX IS HERE
+        token: generateToken(user._id.toString()),
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -43,8 +52,10 @@ export const loginUser = async (req: Request, res: Response) => {
     if (user && (await user.matchPassword(password))) {
       res.json({
         _id: user._id,
+        firstName: user.firstName, // You can optionally return more user data on login
+        lastName: user.lastName,
         email: user.email,
-        token: generateToken(user._id.toString()), // AND FIX IS HERE
+        token: generateToken(user._id.toString()),
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });

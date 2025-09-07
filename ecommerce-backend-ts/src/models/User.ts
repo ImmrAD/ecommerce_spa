@@ -3,12 +3,16 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
   _id: Schema.Types.ObjectId;
+  firstName: string; // Add this line
+  lastName: string;  // Add this line
   email: string;
   password?: string;
   matchPassword(enteredPass: string): Promise<boolean>;
 }
 
 const userSchema = new Schema<IUser>({
+  firstName: { type: String, required: true }, // Add this line
+  lastName: { type: String, required: true },  // Add this line
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
 });
