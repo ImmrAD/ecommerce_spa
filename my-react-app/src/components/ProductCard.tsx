@@ -1,6 +1,6 @@
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext'; // 1. Import useAuth
-import { useNavigate } from 'react-router-dom'; // 2. Import useNavigate
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductCardProps {
   id: string;
@@ -11,18 +11,15 @@ interface ProductCardProps {
 
 function ProductCard({ id, name, price, imageUrl }: ProductCardProps) {
   const { addToCart } = useCart();
-  const { token } = useAuth(); // 3. Get the user's token from the AuthContext
-  const navigate = useNavigate(); // 4. Get the navigate function
+  const { token } = useAuth();
+  const navigate = useNavigate();
 
   const handleAddToCart = () => {
-    // 5. Check if the user is logged in
     if (token) {
-      // If logged in, add the item to the cart
-      const itemToAdd = { _id: id, name, price, imageUrl };
-      addToCart(itemToAdd);
+      // Call addToCart with the product ID and a quantity of 1
+      addToCart(id, 1);
       alert(`${name} added to cart!`);
     } else {
-      // If not logged in, redirect to the login page
       alert('You must be logged in to add items to the cart.');
       navigate('/login');
     }

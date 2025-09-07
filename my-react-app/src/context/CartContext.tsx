@@ -1,80 +1,108 @@
-import { createContext, useState, useEffect, useContext, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useContext, type ReactNode, useCallback } from 'react';
+import axios from 'axios';
+import { useAuth } from './AuthContext'; // We need to know if the user is logged in
 
-// Define the shape of a cart item
+// We need a more detailed type now that we get populated product data
 interface CartItem {
-  _id: string;
-  name: string;
-  price: number;
-  imageUrl: string;
+  _id: string; // This is the cart item's ID, not used much
+  productId: {
+    _id: string;
+    name: string;
+    price: number;
+    imageUrl: string;
+  };
   quantity: number;
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
-  removeFromCart: (itemId: string) => void;
+  loading: boolean;
+  addToCart: (productId: string, quantity: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
   getCartCount: () => number;
-  clearCart: () => void; // 1. Add clearCart to the type definition
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const savedCart = localStorage.getItem('cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const { token } = useAuth();
 
+  const API_URL = 'https://ecommerce-spa-55m5.onrender.com/api/cart';
+
+  // Function to fetch the cart from the backend
+  const fetchCart = useCallback(async () => {
+    if (!token) {
+      setCart([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axios.get(API_URL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart(response.data?.items || []);
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+      setCart([]); // Clear cart on error
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  // useEffect to fetch cart when user logs in/out (token changes)
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    fetchCart();
+  }, [fetchCart]);
 
-  const addToCart = (item: Omit<CartItem, 'quantity'>) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(cartItem => cartItem._id === item._id);
-      if (existingItem) {
-        return prevCart.map(cartItem =>
-          cartItem._id === item._id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      }
-      return [...prevCart, { ...item, quantity: 1 }];
-    });
+  const addToCart = async (productId: string, quantity: number = 1) => {
+    try {
+      const response = await axios.post(API_URL, 
+        { productId, quantity },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCart(response.data.items);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    }
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(cartItem => cartItem._id === itemId);
-      if (existingItem && existingItem.quantity > 1) {
-        return prevCart.map(cartItem =>
-          cartItem._id === itemId
-            ? { ...cartItem, quantity: cartItem.quantity - 1 }
-            : cartItem
-        );
-      }
-      return prevCart.filter(cartItem => cartItem._id !== itemId);
-    });
+  const removeFromCart = async (productId: string) => {
+    try {
+      const response = await axios.delete(`${API_URL}/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart(response.data.items);
+    } catch (error) {
+      console.error('Failed to remove from cart:', error);
+    }
+  };
+  
+  const clearCart = async () => {
+    try {
+      await axios.delete(API_URL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart([]);
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+    }
   };
 
   const getCartCount = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // 2. Add the function to clear the cart
-  const clearCart = () => {
-    setCart([]);
-  };
-
   return (
-    // 3. Provide the clearCart function to the context
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, getCartCount, clearCart }}>
+    <CartContext.Provider value={{ cart, loading, addToCart, removeFromCart, clearCart, getCartCount }}>
       {children}
     </CartContext.Provider>
   );
 };
 
-// Custom hook for easy access
 export const useCart = () => {
   const context = useContext(CartContext);
   if (context === undefined) {
