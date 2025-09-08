@@ -4,7 +4,7 @@ A complete single-page web application for a modern e-commerce website, built fr
 
 ## Live Demo
 
-* **Frontend (Vercel):** `https://<your-vercel-deployment-url>`
+* **Frontend (Vercel):** `https://ecommerce-spa.vercel.app/`
 * **Backend API (Render):** `https://ecommerce-spa-55m5.onrender.com`
 
 ---
